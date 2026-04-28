@@ -1,0 +1,7 @@
+{
+"type": "FeatureCollection",
+"name": "chargers_not_joined_to_ca_tracts",
+"features": [
+{ "type": "Feature", "properties": { "OBJECTID": 3848, "ID": 168759, "City": "Gardena", "ZIP": 90249.0, "Latitude": 33.584879, "Longitude": -117.999172, "L1_evse": 0, "L2_evse": 2, "DCFC": 0, "Charger_Type": "Level 2 only", "total_evse": 2, "station_count": 1, "index_right": null, "GEOID": null, "COUNTYFP": null, "TRACTCE": null, "NAMELSAD": null }, "geometry": { "type": "Point", "coordinates": [ 609591.290445003309287, -1608400.90901062800549 ] } }
+]
+}

@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Very large GeoJSON exports exceed GitHub's 100 MB file limit.
+# GeoPackage equivalents are kept in data/processed/.
+data/processed/ca_tract_charger_join.geojson
+data/processed/ca_census_tracts_2024_clean.geojson
+
+# Course readings and extracted reading text stay local.
+# Do not publish Brightspace/course PDF materials to a public repository.
+docs/references/readings/
+docs/references/notes/pdf_text_index/
+docs/references/notes/pdf_inventory.json

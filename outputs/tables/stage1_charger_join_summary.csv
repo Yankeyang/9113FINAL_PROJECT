@@ -1,0 +1,9 @@
+metric,value
+charger_stations,17186.0
+l1_evse,60.0
+l2_evse,37151.0
+dcfc,13587.0
+total_evse,50798.0
+california_tracts,9129.0
+tracts_with_at_least_one_station,3510.0
+tracts_with_zero_station,5619.0
