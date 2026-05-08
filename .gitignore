@@ -13,6 +13,11 @@ venv/
 data/processed/ca_tract_charger_join.geojson
 data/processed/ca_census_tracts_2024_clean.geojson
 
+# Large Census ZCTA boundary downloads stay local.
+# The final tract-level vehicle allocation output is saved in data/processed/.
+data/raw/tl_2024_us_zcta520.zip
+data/raw/zcta_boundaries/
+
 # Course readings and extracted reading text stay local.
 # Do not publish Brightspace/course PDF materials to a public repository.
 docs/references/readings/

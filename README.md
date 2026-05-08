@@ -1,494 +1,395 @@
-# California EV Charger Demand Prediction and Gap Analysis
+# California EV Charger Benchmark Planning Model
 
 ## Project Goal
 
-This project analyzes the spatial distribution of electric vehicle charging infrastructure and near-home public charging demand in California. The workflow combines California Energy Commission SB 1000 demand hexagons, existing public charger locations, census tract boundaries, socioeconomic variables, spatial hotspot analysis, and a predictive or explanatory model.
+This project builds a census tract-level EV charger planning model for California. The goal is not to forecast natural market demand. Instead, the project estimates how many EV charging ports each tract should have if it were planned toward a benchmark level already observed in better-served California tracts.
 
-The final output will identify census tracts where modeled near-home charging demand is high but existing charger supply is low, with interpretation for equity, urban planning, commuting, housing, and infrastructure investment.
+The final model uses current high-service tracts as a planning benchmark, applies that standard to other California census tracts, and estimates the future EVSE planning gap:
+
+```text
+planning gap = max(0, predicted target EVSE count - current EVSE count)
+```
 
 ## Research Question
 
-Where is near-home public EV charging demand concentrated in California, and which census tracts may need additional charging infrastructure?
+If California moves toward a future where electric vehicles replace gasoline vehicles, which census tracts are likely to need additional public EV charging infrastructure under a benchmark planning standard?
 
-## Project Structure
+## Core Concept
 
-```text
-EV_Charger_Final_Project/
-├── data/
-│   ├── raw/                 # Original downloaded datasets
-│   └── processed/           # Cleaned, joined, and model-ready datasets
-├── docs/                    # Notes, data dictionaries, workflow references
-├── notebooks/               # Jupyter notebooks for analysis and modeling
-├── outputs/
-│   ├── figures/             # Maps, charts, KDE outputs, comparison figures
-│   └── tables/              # Summary tables and model results
-├── report/                  # Final written report and presentation materials
-├── src/                     # Reusable Python scripts and helper functions
-└── README.md
-```
-
-## Workflow
-
-### 1. Define Research Question
-
-Clarify the main analytical question:
-
-- Where are EV chargers currently concentrated?
-- Which census tracts have high predicted demand but low existing charger supply?
-- Do infrastructure gaps relate to socioeconomic, housing, commuting, or urban form variables?
-
-Expected output:
-
-- A short research question statement in `docs/research_question.md`
-
-### 2. Data Collection
-
-Collect four main categories of data. The primary source is the California Energy Commission SB 1000 map supplied for this project.
-
-#### 2.1 CEC Near-Home Charging Demand and Existing Chargers
-
-Primary source:
-
-- California Energy Commission, Near-Home Public Charging Demand From Electric Vehicles Without Home Charging
-
-Project source URL:
+The key benchmark variable is:
 
 ```text
-https://cecgis-caenergy.opendata.arcgis.com/maps/CAEnergy::near-home-public-charging-demand-from-electric-vehicles-without-home-charging/explore
+ev_charger_benchmark_value
+= EVSE per 1,000 light-duty vehicles
 ```
 
-Confirmed ArcGIS feature layers:
+This value compares public EV charging infrastructure with the estimated number of light-duty vehicles in each census tract. It is used to define benchmark tracts, not as a direct claim of true market demand.
+
+The final benchmark group is:
 
 ```text
-High-utilization demand hexagons:
-https://services3.arcgis.com/bWPjFyq029ChCGur/arcgis/rest/services/sb_1000_results_high_2025/FeatureServer/0
-
-Low-utilization demand hexagons:
-https://services3.arcgis.com/bWPjFyq029ChCGur/arcgis/rest/services/sb_1000_results_low_2025/FeatureServer/0
-
-Existing public chargers as of March 2025:
-https://services3.arcgis.com/bWPjFyq029ChCGur/arcgis/rest/services/public_chargers_afdc_20250313/FeatureServer/0
+20 <= ev_charger_benchmark_value <= 100
 ```
 
-Important demand fields:
+Tracts above 100 are treated as extreme high-ratio cases and excluded from the benchmark training group.
 
-- `ev_no_2mi`: 2024 EVs without home charging and without sufficient public Level 2 or DC fast charging within 2 miles
-- `ev_no_walk`: 2024 EVs without home charging and without sufficient public Level 2 charging within walking distance
-- `vf_nohome`: EVs in a 100% EV future without home charging
+## Final Workflow
 
-Important supply fields:
+### 1. Join Existing Chargers to Census Tracts
 
-- `L1_evse`
-- `L2_evse`
-- `DCFC`
-- `Charger_Type`
+Existing public charger points are spatially joined to California census tract polygons. This produces tract-level charger counts and EVSE counts.
 
-Save raw file to:
+Key output:
 
 ```text
-data/raw/cec_sb1000_demand_high.geojson
-data/raw/cec_sb1000_demand_low.geojson
-data/raw/cec_existing_public_chargers.geojson
+outputs/figures/ca_tract_charger_join_map.png
+outputs/tables/stage1_charger_join_summary.csv
+data/processed/ca_tract_charger_join_with_kde.csv
+data/processed/ca_tract_charger_join_with_kde.gpkg
 ```
 
-#### 2.2 Census Tract Boundaries
+This step validates that point-level charger locations have been correctly converted into tract-level infrastructure measures.
 
-Recommended source:
+![Charger points joined to census tracts](outputs/figures/ca_tract_charger_join_map.png)
 
-- U.S. Census TIGER/Line shapefiles
+### 2. Show Current Charger Concentration
 
-Use:
+KDE maps are used to show that current EV chargers are concentrated in major urban areas and transportation corridors. This motivates the planning question: many tracts have very low existing charger coverage, but future EV adoption may require broader infrastructure.
 
-- 2024 California census tracts
-
-Required geography:
-
-- California census tracts
-- Los Angeles census tracts
-- San Francisco census tracts
-
-Save raw boundary files to:
+Key outputs:
 
 ```text
-data/raw/census_tract_boundaries/
+outputs/figures/ca_ev_charger_kde_osm_basemap.png
+outputs/figures/benchmark_regions_kde_osm_basemap.png
 ```
 
-#### 2.3 Census Socioeconomic Variables
+![Current EV charger KDE concentration](outputs/figures/ca_ev_charger_kde_osm_basemap.png)
 
-Recommended source:
+### 3. Allocate Vehicle Counts From ZIP/ZCTA to Census Tracts
 
-- U.S. Census Bureau 2020-2024 American Community Survey 5-year estimates
+California vehicle registration data are available at the ZIP level. Because the modeling unit is the census tract, ZIP-level light-duty vehicle and EV counts are allocated to tracts.
 
-Candidate variables:
-
-- Total population
-- Median household income
-- Housing units
-- Vehicle availability
-- Commute mode
-- Commute time
-- Employment
-- Population density
-- Housing density
-- Race and ethnicity variables, if equity analysis is included
-
-Save raw ACS data to:
+Two allocation weights were compared:
 
 ```text
-data/raw/acs_socioeconomic_variables.csv
+area-weighted allocation
+population-weighted allocation
 ```
 
-#### 2.4 CEC Equity and Urban-Rural Classifications
-
-Recommended source:
-
-- CEC SB 1000 population layer
-
-Confirmed ArcGIS feature layer:
+The diagnostic result showed that ZIP-level light-duty vehicles are much more strongly related to population than land area:
 
 ```text
-https://services3.arcgis.com/bWPjFyq029ChCGur/arcgis/rest/services/sb1000_2025_populations/FeatureServer/0
+R-squared with area:       about 0.012
+R-squared with population: about 0.661
 ```
 
-Important fields:
+Therefore, the project uses population-weighted allocation.
 
-- `DAC`
-- `Income_Group`
-- `Priority_pop`
-- `Pop_dens`
-- `COUNTYFP`
-- `Tract`
-
-More detail is documented in:
+Key outputs:
 
 ```text
-docs/data_sources_and_matching.md
+outputs/figures/zip_light_duty_vehicle_r2_area_vs_population.png
+outputs/tables/vehicle_allocation_weight_r2_comparison.csv
+data/processed/zip_vehicle_area_population_diagnostics.csv
 ```
 
-### 3. Geocoding and Spatial Join
+![Vehicle allocation diagnostic](outputs/figures/zip_light_duty_vehicle_r2_area_vs_population.png)
 
-Convert CEC demand hexagons and charger point locations into a tract-level or hex-level analysis dataset.
+### 4. Calculate EV Charger Benchmark Value
 
-Main tasks:
-
-- Load CEC demand hexagons
-- Load existing public charger points
-- Load census tract polygons
-- Set a consistent coordinate reference system
-- Spatially join chargers to census tracts or demand hexagons
-- Aggregate demand hexagons to census tracts if tract is the final unit
-- Join ACS and CEC equity variables
-
-Expected processed outputs:
+For each tract:
 
 ```text
-data/processed/tract_level_ev_gap_dataset.geojson
-data/processed/ca_tract_model_dataset.csv
+ev_charger_benchmark_value
+= total_evse / light_duty_vehicles_population_weighted * 1000
 ```
 
-### 4. Exploratory Spatial Analysis
+This gives EVSE per 1,000 light-duty vehicles.
 
-Explore charger distribution across California.
-
-Main tasks:
-
-- Map current charger distribution
-- Calculate charger counts by tract
-- Calculate charger density by population, area, or housing units
-- Compare charger distribution with population and income patterns
-
-Expected figures:
+Key outputs:
 
 ```text
-outputs/figures/current_ev_charger_distribution.png
-outputs/figures/charger_density_by_tract.png
+data/processed/ca_tract_evse_vehicle_ratio_results.csv
+outputs/figures/ca_ev_charger_benchmark_value_by_tract.png
+outputs/tables/ev_charger_benchmark_value_10_interval_counts.csv
+outputs/tables/ca_tract_evse_per_1000_vehicle_ranking.csv
 ```
 
-### 5. Spatial Pattern Finding
+![EV charger benchmark value by tract](outputs/figures/ca_ev_charger_benchmark_value_by_tract.png)
 
-Describe major spatial patterns from the exploratory maps.
+### 5. Naive Baseline Plan for Comparison
 
-Expected interpretation:
+In addition to the benchmark model, the project includes a simple baseline planning method. This baseline is used as a reference point, not as the final recommended model.
 
-- EV chargers are likely concentrated in major urban and coastal regions
-- Los Angeles, San Diego, and the San Francisco Bay Area are expected to show strong charger clusters
-- Rural and lower-density regions may show lower charger coverage
+The naive baseline starts from gasoline infrastructure and asks how many public EV charging ports would be needed if gasoline vehicles were replaced by EVs.
 
-Expected output:
+Baseline assumptions:
 
 ```text
-docs/spatial_pattern_notes.md
+1 gasoline pump ~= 12.2 EV charging ports by throughput equivalence
+Public charging need share = 20%
+needed public EV ports = gas nozzles * 12.2 * 0.20
 ```
 
-### 6. Hotspot Identification
+The baseline is useful because it gives a transparent rule-based comparison. However, it is less tract-specific than the final benchmark model because it begins from county-level gas nozzle estimates and allocates results to tracts using a proxy.
 
-Use KDE or other hotspot methods to identify charger concentration areas.
-
-Main tasks:
-
-- Run Kernel Density Estimation on charger point locations
-- Map KDE intensity surface
-- Identify major hotspot regions
-- Compare hotspots with census tract boundaries
-
-Expected figures:
+Key outputs:
 
 ```text
-outputs/figures/kde_hotspot_map_california.png
-outputs/figures/kde_hotspot_map_los_angeles.png
-outputs/figures/kde_hotspot_map_san_francisco.png
+outputs/figures/naive_baseline_needed_ports_map.png
+outputs/figures/naive_baseline_coverage_map.png
+src/ca_ev_charger_needs_analysis.ipynb
 ```
 
-### 7. Modeling Strategy Design
-
-Use hotspot-rich urban regions to guide model development and cross-city transfer.
-
-Planned strategy:
-
-- Train the model using Los Angeles census tracts
-- Test or transfer the model to San Francisco census tracts
-- Use socioeconomic and urban variables as predictors
-- Use charger count or charger density as the target variable
-
-Expected output:
+Interpretation:
 
 ```text
-docs/modeling_strategy.md
+Naive baseline = simple gas-station replacement reference
+Final benchmark model = tract-level planning target estimated from current high-service EV charger tracts
 ```
 
-### 8. Region Selection
+![Naive baseline needed ports](outputs/figures/naive_baseline_needed_ports_map.png)
 
-Define training and test regions.
+![Naive baseline coverage](outputs/figures/naive_baseline_coverage_map.png)
 
-Training region:
+### 6. Define Benchmark Training Tracts
 
-- Los Angeles census tracts
-
-Test / transfer region:
-
-- San Francisco census tracts
-
-Expected processed outputs:
+The benchmark tracts are current California tracts with:
 
 ```text
-data/processed/la_model_dataset.csv
-data/processed/sf_model_dataset.csv
+20 <= ev_charger_benchmark_value <= 100
 ```
 
-### 9. Model Inputs
+These tracts represent places that already have relatively high charger provision compared with their estimated light-duty vehicle base. They are used as the planning standard for the supervised model.
 
-Prepare predictor and target variables.
-
-Predictor examples:
-
-- Population
-- Population density
-- Median household income
-- Housing density
-- Commute mode
-- Commute time
-- Vehicle availability
-- Employment density
-- Urban characteristics
-
-Target examples:
-
-- EV charger count per census tract
-- EV charger density per census tract
-- EV charging ports per population, if port count is available
-
-Expected output:
+Final benchmark sample:
 
 ```text
-data/processed/model_input_features.csv
+Benchmark tracts: 188
+Training tracts: 141
+Testing tracts: 47
 ```
 
-### 10. Model Development
+### 7. Train Final Model
 
-Train a model to estimate charger demand.
+The model predicts tract-level EVSE count under the benchmark planning standard.
 
-Baseline model:
-
-- Multilinear regression
-
-Possible extension:
-
-- Semi-supervised learning
-- Random forest regression
-- Gradient boosting
-- Spatial lag or spatial error model
-
-Evaluation metrics:
-
-- RMSE
-- MAE
-- R-squared
-- Residual maps
-
-Expected outputs:
+Final target:
 
 ```text
-outputs/tables/model_performance.csv
-outputs/figures/model_residuals_map.png
+total_evse
 ```
 
-### 11. Demand Prediction
-
-Use the trained model to predict expected EV charger demand for each census tract.
-
-Main tasks:
-
-- Predict demand for Los Angeles census tracts
-- Transfer model to San Francisco census tracts
-- Compare predicted values against current charger supply
-
-Expected output:
+Final input features:
 
 ```text
-data/processed/predicted_charger_demand_by_tract.csv
+population
+tract_area_sq_mi
+light_duty_vehicles_population_weighted
+ev_vehicles_population_weighted
 ```
 
-### 12. Comparison Analysis
-
-Compare predicted charger demand with actual charger distribution.
-
-Main tasks:
-
-- Map predicted demand
-- Map actual charger supply
-- Calculate demand-supply gap
-- Rank census tracts by under-service
-
-Expected figures:
+Final model:
 
 ```text
-outputs/figures/predicted_charger_demand.png
-outputs/figures/actual_charger_distribution.png
-outputs/figures/demand_supply_gap_map.png
+Ridge regression with standardized inputs and log-transformed target
 ```
 
-Expected table:
+The log target reduces the effect of very large EVSE counts while still predicting charger count as the final output.
+
+Key script:
 
 ```text
-outputs/tables/top_underserved_tracts.csv
+src/final_benchmark_gap_model.py
 ```
 
-### 13. Gap Identification
-
-Identify locations where predicted demand is high but existing charger supply is low.
-
-Classification examples:
-
-- Underserved census tracts
-- Well-served census tracts
-- Over-served areas
-
-Possible gap score:
+Key outputs:
 
 ```text
-gap_score = predicted_charger_demand - actual_charger_supply
+outputs/tables/final_scale_model_performance.csv
+outputs/tables/final_scale_model_test_set_predictions.csv
+outputs/figures/final_scale_model_test_set_predicted_vs_actual.png
 ```
 
-Expected output:
+![Final model test set actual vs predicted](outputs/figures/final_scale_model_test_set_predicted_vs_actual.png)
+
+Final test-set performance:
 
 ```text
-data/processed/tract_gap_classification.geojson
+MAE:  17.38
+RMSE: 21.44
+R2:   0.55
 ```
 
-### 14. Interpretation
+### 8. Apply Model to Non-Benchmark Tracts
 
-Interpret the gap results through four lenses.
-
-#### 14.1 Equity Issues
-
-Evaluate whether underserved areas overlap with lower-income communities, disadvantaged communities, or areas with limited transportation access.
-
-#### 14.2 Urban Planning Factors
-
-Consider land use, density, urban form, and regional development patterns.
-
-#### 14.3 Income, Housing, and Commuting Patterns
-
-Assess how predicted demand and infrastructure gaps relate to:
-
-- Income
-- Housing density
-- Vehicle access
-- Commute distance or time
-- Transit use
-
-#### 14.4 Infrastructure Investment Gaps
-
-Discuss where public or private charging investment may be missing.
-
-Expected output:
+After training on benchmark tracts, the model is applied to all non-benchmark California tracts. For each tract:
 
 ```text
-docs/interpretation_notes.md
+predicted target EVSE count = model output
+current EVSE count = existing public EVSE count
+planning gap = max(0, predicted target EVSE count - current EVSE count)
 ```
 
-### 15. Conclusion
+Benchmark tracts are shown in gray on the final gap map because they are the training standard, not the main application group.
 
-Summarize where chargers are needed but missing and provide policy or planning recommendations.
-
-Final deliverables:
+Final statewide application:
 
 ```text
-report/final_report.md
-report/final_presentation.pptx
-outputs/figures/final_gap_map.png
-outputs/tables/final_priority_tracts.csv
+Non-benchmark tracts: 8,941
+Total predicted target EVSE in non-benchmark tracts: 909,749
+Current EVSE in non-benchmark tracts: 36,102
+Total planning gap: 875,826
 ```
 
-The conclusion should answer:
-
-- Where are EV chargers needed but missing?
-- Which census tracts should be prioritized?
-- What social or spatial factors explain the gaps?
-- What policy or planning actions are recommended?
-
-## Suggested Notebook Order
+Key outputs:
 
 ```text
-notebooks/01_data_collection_and_cleaning.ipynb
-notebooks/02_spatial_join_and_tract_aggregation.ipynb
-notebooks/03_exploratory_spatial_analysis.ipynb
-notebooks/04_kde_hotspot_analysis.ipynb
-notebooks/05_model_training_los_angeles.ipynb
-notebooks/06_model_transfer_san_francisco.ipynb
-notebooks/07_gap_analysis_and_interpretation.ipynb
+data/processed/final_scale_model_statewide_gap_results_nonbenchmark_flagged.csv
+outputs/figures/final_scale_model_nonbenchmark_gap_map.png
+outputs/figures/top_zero_current_nonbenchmark_gap_tracts.png
+outputs/tables/final_scale_model_gap_bin_counts.csv
+outputs/tables/top_100_nonbenchmark_gap_tracts.csv
+outputs/tables/top_100_zero_current_nonbenchmark_gap_tracts.csv
 ```
 
-## Suggested Python Libraries
+![Final non-benchmark planning gap map](outputs/figures/final_scale_model_nonbenchmark_gap_map.png)
+
+The final gap map uses binned colors so that extreme high-gap tracts do not dominate the visualization:
 
 ```text
-pandas
-geopandas
-numpy
-matplotlib
-seaborn
-scikit-learn
-contextily
-shapely
-pyproj
-folium
-osmnx
+0
+1-10
+11-25
+26-50
+51-100
+101-250
+251-500
+501-1000
+>1000
 ```
 
-## Final Project Checklist
+## Interpretation
 
-- [ ] Research question finalized
-- [ ] EV charger dataset downloaded
-- [ ] Census tract boundary data downloaded
-- [ ] ACS socioeconomic variables downloaded
-- [ ] Charger points spatially joined to census tracts
-- [ ] Charger counts and densities calculated
-- [ ] KDE hotspot maps created
-- [ ] Los Angeles training dataset prepared
-- [ ] San Francisco test dataset prepared
-- [ ] Baseline regression model trained
-- [ ] Predicted demand calculated
-- [ ] Actual supply compared with predicted demand
-- [ ] Underserved tracts identified
-- [ ] Equity and planning interpretation completed
-- [ ] Final report and presentation completed
+This project should be interpreted as a benchmark-based planning analysis.
+
+It answers:
+
+```text
+If other California census tracts were planned toward the charger-to-vehicle levels
+already observed in better-served tracts, how many EVSE would they need?
+```
+
+It does not answer:
+
+```text
+What is exact natural market demand today?
+What is the equilibrium number of chargers in every tract?
+Should every tract necessarily match the same charger ratio?
+```
+
+The output is a planning target and gap estimate, not a direct demand forecast.
+
+## Method Development Notes
+
+The final workflow came from several rounds of modeling and interpretation.
+
+First, a simple linear regression approach was considered. This was attractive because it was easy to explain, but the initial model fit was weak: the R-squared values were too low to support the planning interpretation by themselves. That result suggested that raw tract-level variables and current charger count did not have a clean linear relationship across all California tracts.
+
+Second, a naive baseline plan was added as a transparent reference case. This baseline converts gasoline station capacity into EV charging capacity using a throughput assumption:
+
+```text
+1 gasoline pump ~= 12.2 EV ports
+needed public EV ports = gas nozzles * 12.2 * 0.20
+```
+
+The baseline is useful for comparison because it shows what a simple gasoline-replacement rule would imply. However, it is not the final model because it relies on county-level gas nozzle assumptions and proxy allocation to tracts.
+
+Third, the final benchmark model was reframed around current high-service EV charger tracts. Instead of predicting natural demand directly, the model learns from tracts with `ev_charger_benchmark_value` between 20 and 100. The final model uses scale variables and a log-transformed target to reduce the influence of very large charger counts. This produced a more stable test-set result:
+
+```text
+R2 = 0.55
+```
+
+This is why the final result is presented as a benchmark-based planning estimate rather than a pure demand forecast.
+
+## Current Project Structure
+
+```text
+data/
+  raw/
+    cec_existing_public_chargers.geojson
+    dmv_vehicle_counts_by_zip_2024.csv
+    tl_2024_06_tract.zip
+    tl_2024_us_zcta520.zip
+    census_tract_boundaries/
+    zcta_boundaries/
+
+  processed/
+    ca_tract_charger_join_with_kde.csv
+    ca_tract_charger_join_with_kde.gpkg
+    ca_tract_evse_vehicle_ratio_results.csv
+    final_scale_model_statewide_gap_results_nonbenchmark_flagged.csv
+
+outputs/
+  figures/
+    ca_tract_charger_join_map.png
+    ca_ev_charger_kde_osm_basemap.png
+    benchmark_regions_kde_osm_basemap.png
+    naive_baseline_needed_ports_map.png
+    naive_baseline_coverage_map.png
+    zip_light_duty_vehicle_r2_area_vs_population.png
+    ca_ev_charger_benchmark_value_by_tract.png
+    final_scale_model_test_set_predicted_vs_actual.png
+    final_scale_model_nonbenchmark_gap_map.png
+    top_zero_current_nonbenchmark_gap_tracts.png
+
+  tables/
+    stage1_charger_join_summary.csv
+    vehicle_allocation_weight_r2_comparison.csv
+    ev_charger_benchmark_value_10_interval_counts.csv
+    ca_tract_evse_per_1000_vehicle_ranking.csv
+    final_scale_model_performance.csv
+    final_scale_model_test_set_predictions.csv
+    final_scale_model_gap_bin_counts.csv
+    top_100_nonbenchmark_gap_tracts.csv
+    top_100_zero_current_nonbenchmark_gap_tracts.csv
+
+src/
+  build_charger_tract_outputs.py
+  make_kde_basemap_maps.py
+  build_vehicle_ratio_tract_results.py
+  final_benchmark_gap_model.py
+  ca_ev_charger_needs_analysis.ipynb
+```
+
+## Reproduce Final Model
+
+Run:
+
+```bash
+python src/final_benchmark_gap_model.py
+```
+
+This regenerates:
+
+```text
+outputs/figures/final_scale_model_test_set_predicted_vs_actual.png
+outputs/figures/final_scale_model_nonbenchmark_gap_map.png
+outputs/figures/top_zero_current_nonbenchmark_gap_tracts.png
+outputs/tables/final_scale_model_performance.csv
+outputs/tables/final_scale_model_test_set_predictions.csv
+outputs/tables/final_scale_model_gap_bin_counts.csv
+outputs/tables/top_100_nonbenchmark_gap_tracts.csv
+outputs/tables/top_100_zero_current_nonbenchmark_gap_tracts.csv
+data/processed/final_scale_model_statewide_gap_results_nonbenchmark_flagged.csv
+```
+
+## Limitations
+
+- The benchmark value depends on currently observed charger and vehicle data, so it reflects present infrastructure patterns as well as planning need.
+- ZIP-level vehicle data must be allocated to census tracts; population-weighted allocation is empirically stronger than area weighting but is still an estimate.
+- The model uses scale variables and does not include detailed land use, employment centers, retail activity, traffic flow, tourism, or charging behavior.
+- Very high benchmark values may reflect special locations such as commercial centers, highway corridors, airports, or data artifacts; values above 100 are excluded from benchmark training.
+- The final gap should be read as a benchmark planning gap, not as a guaranteed construction requirement.
+- The naive baseline plan is included only as a rule-based comparison. It depends on gasoline nozzle assumptions and county-to-tract allocation, so it should not be interpreted as the final tract-level planning estimate.

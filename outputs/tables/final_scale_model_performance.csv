@@ -1,0 +1,2 @@
+benchmark_definition,target,features,benchmark_tracts,train_tracts,test_tracts,mae,rmse,r2
+20 <= ev_charger_benchmark_value <= 100,total_evse,"population, tract_area_sq_mi, light_duty_vehicles_population_weighted, ev_vehicles_population_weighted",188,141,47,17.384451333740344,21.43506540673806,0.5502639956356136
