@@ -401,3 +401,31 @@ data/processed/final_scale_model_statewide_gap_results_nonbenchmark_flagged.csv
 - Very high benchmark values may reflect special locations such as commercial centers, highway corridors, airports, or data artifacts; values above 100 are excluded from benchmark training.
 - The final gap should be read as a benchmark planning gap, not as a guaranteed construction requirement.
 - The naive baseline plan is included only as a rule-based comparison. It depends on gasoline nozzle assumptions and county-to-tract allocation, so it should not be interpreted as the final tract-level planning estimate.
+
+## References
+
+California Department of Motor Vehicles. (2024). *Vehicle registration data by ZIP code*. California Open Data Portal. https://data.ca.gov/
+
+California Energy Commission. (2024). *Assembly Bill 2127 second electric vehicle charging infrastructure assessment: Assessing charging needs to support zero-emission vehicles in 2030 and 2035* (CEC-600-2024-003). https://www.energy.ca.gov/publications/2024/assembly-bill-2127-second-electric-vehicle-charging-infrastructure-assessment
+
+California Energy Commission. (2024). *EV charging infrastructure needs: Baseline scenario*. AB 2127 dashboard. https://www.energy.ca.gov/data-reports/data-exploration-tools/ab-2127-ev-charging-infrastructure-report-dashboards/ab-2127-ev
+
+European Alternative Fuels Observatory. (2026). *Target tracker: AFIR fleet-based target*. https://alternative-fuels-observatory.ec.europa.eu/transport-mode/road/european-union-eu27/target-tracker
+
+European Commission. (2023). *Alternative fuels infrastructure regulation*. Directorate-General for Mobility and Transport. https://transport.ec.europa.eu/transport-themes/clean-transport/alternative-fuels-sustainable-mobility-europe/alternative-fuels-infrastructure_en
+
+National Renewable Energy Laboratory. (n.d.). *EVI-Pro: Electric Vehicle Infrastructure Projection Tool*. https://www.nrel.gov/transportation/evi-pro
+
+OpenStreetMap contributors. (n.d.). *OpenStreetMap*. https://www.openstreetmap.org/
+
+U.S. Census Bureau. (2024). *American Community Survey 5-year estimates, 2024: Detailed tables*. https://api.census.gov/data/2024/acs/acs5.html
+
+U.S. Census Bureau. (2024). *TIGER/Line shapefiles: Census tracts, 2024*. https://www2.census.gov/geo/tiger/TIGER2024/TRACT/
+
+U.S. Census Bureau. (2024). *TIGER/Line shapefiles: ZIP Code Tabulation Areas, 2024*. https://www2.census.gov/geo/tiger/TIGER2024/ZCTA520/
+
+Brown, A., Cappellucci, J., White, E., Heinrich, A., & Cost, E. (2023). *Electric vehicle charging infrastructure trends from the Alternative Fueling Station Locator: Fourth quarter 2022* (NREL/TP-5400-85801). National Renewable Energy Laboratory. https://doi.org/10.2172/1974577
+
+Wood, E., Borlaug, B., Moniot, M., Lee, D.-Y., Ge, Y., Yang, F., & Liu, Z. (2023). *The 2030 national charging network: Estimating U.S. light-duty demand for electric vehicle charging infrastructure* (NREL/TP-5400-85654). National Renewable Energy Laboratory. https://doi.org/10.2172/1988020
+
+Xylia, M., Olsson, E., Macura, B., & Nykvist, B. (2025). Estimating charging infrastructure demand for electric vehicles: A systematic review. *Energy Strategy Reviews, 59*, 101753. https://doi.org/10.1016/j.esr.2025.101753
