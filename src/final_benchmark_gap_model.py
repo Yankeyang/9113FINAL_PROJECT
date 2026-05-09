@@ -13,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from gis_map_utils import add_map_credits, add_north_arrow, add_scale_bar
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
@@ -28,6 +30,7 @@ FEATURES = [
 ]
 TARGET = "total_evse"
 BENCHMARK_COL = "evse_per_1000_light_duty_vehicles_population_weighted"
+CRS_CA_ALBERS = "EPSG:3310"
 GAP_BINS = [-0.1, 0, 10, 25, 50, 100, 250, 500, 1000, np.inf]
 GAP_LABELS = [
     "0",
@@ -42,14 +45,26 @@ GAP_LABELS = [
 ]
 GAP_COLORS = [
     "#f7f7f7",
-    "#fff2b2",
-    "#fed976",
-    "#feb24c",
-    "#fd8d3c",
-    "#fc4e2a",
-    "#e31a1c",
-    "#bd0026",
-    "#800026",
+    "#fff7bc",
+    "#fee391",
+    "#fec44f",
+    "#fe9929",
+    "#ec7014",
+    "#cc4c02",
+    "#993404",
+    "#4d1600",
+]
+BENCHMARK_BINS = [-0.1, 0, 1, 5, 10, 20, 50, 100, np.inf]
+BENCHMARK_LABELS = ["0", "0-1", "1-5", "5-10", "10-20", "20-50", "50-100", ">100"]
+BENCHMARK_COLORS = [
+    "#ffffcc",
+    "#c7e9b4",
+    "#7fcdbb",
+    "#41b6c4",
+    "#1d91c0",
+    "#225ea8",
+    "#253494",
+    "#081d58",
 ]
 
 
@@ -67,6 +82,114 @@ def build_model() -> Pipeline:
         inverse_func=np.expm1,
     )
     return Pipeline([("preprocess", preprocess), ("model", regressor)])
+
+
+def plot_benchmark_value_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
+    map_df = geo.merge(
+        statewide[["GEOID", BENCHMARK_COL, "is_benchmark_20to100"]],
+        on="GEOID",
+        how="left",
+    ).to_crs(CRS_CA_ALBERS)
+    map_df["benchmark_value_bin"] = pd.cut(
+        map_df[BENCHMARK_COL],
+        bins=BENCHMARK_BINS,
+        labels=BENCHMARK_LABELS,
+        include_lowest=True,
+    )
+
+    fig, ax = plt.subplots(figsize=(8.5, 10.5), facecolor="white")
+    map_df.plot(ax=ax, color="#eeeeee", linewidth=0)
+    for label, color in zip(BENCHMARK_LABELS, BENCHMARK_COLORS):
+        map_df[map_df["benchmark_value_bin"] == label].plot(
+            ax=ax,
+            color=color,
+            linewidth=0,
+        )
+    map_df.boundary.plot(ax=ax, linewidth=0.025, color="#ffffff", alpha=0.42)
+    map_df.dissolve().boundary.plot(ax=ax, linewidth=0.9, color="#27313d")
+
+    handles = [
+        Patch(facecolor=color, edgecolor="#4b5563", linewidth=0.25, label=f"{label} EVSE / 1,000 vehicles")
+        for label, color in zip(BENCHMARK_LABELS, BENCHMARK_COLORS)
+    ]
+    ax.legend(
+        handles=handles,
+        title="EV charger benchmark value",
+        loc="lower right",
+        bbox_to_anchor=(0.98, 0.065),
+        fontsize=7,
+        title_fontsize=8,
+        frameon=True,
+        framealpha=0.94,
+        borderpad=0.7,
+    )
+    add_scale_bar(ax, 200_000, "200 km", location=(0.50, 0.055), anchor="center")
+    add_north_arrow(ax, x=0.075, y=0.86)
+    add_map_credits(ax, "Projection: California Albers (EPSG:3310)")
+    ax.set_title(
+        "EV Charger Benchmark Value by California Census Tract\nEVSE per 1,000 population-weighted light-duty vehicles",
+        fontsize=13,
+        pad=12,
+    )
+    ax.set_axis_off()
+    plt.tight_layout()
+    plt.savefig(FIGURES / "ca_ev_charger_benchmark_value_by_tract.png", dpi=240)
+    plt.close()
+
+
+def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
+    map_df = geo.merge(
+        statewide[
+            [
+                "GEOID",
+                "planning_gap_evse_non_benchmark_only",
+                "planning_gap_bin",
+                "is_benchmark_20to100",
+            ]
+        ],
+        on="GEOID",
+        how="left",
+    ).to_crs(CRS_CA_ALBERS)
+
+    fig, ax = plt.subplots(figsize=(8.5, 10.5), facecolor="white")
+    map_df.plot(ax=ax, color="#e8e8e8", linewidth=0)
+    for label, color in zip(GAP_LABELS, GAP_COLORS):
+        map_df[map_df["planning_gap_bin"] == label].plot(
+            ax=ax,
+            color=color,
+            linewidth=0,
+        )
+    map_df.boundary.plot(ax=ax, linewidth=0.025, color="#ffffff", alpha=0.40)
+    map_df.dissolve().boundary.plot(ax=ax, linewidth=0.9, color="#27313d")
+
+    legend_handles = [Patch(facecolor="#e8e8e8", edgecolor="#9ca3af", linewidth=0.25, label="Benchmark tracts")]
+    legend_handles += [
+        Patch(facecolor=color, edgecolor="#4b5563", linewidth=0.25, label=f"Gap {label} EVSE")
+        for label, color in zip(GAP_LABELS, GAP_COLORS)
+    ]
+    ax.legend(
+        handles=legend_handles,
+        title="Planning gap bins",
+        loc="lower right",
+        bbox_to_anchor=(0.98, 0.065),
+        fontsize=7,
+        title_fontsize=8,
+        frameon=True,
+        framealpha=0.94,
+        borderpad=0.7,
+    )
+    add_scale_bar(ax, 200_000, "200 km", location=(0.50, 0.055), anchor="center")
+    add_north_arrow(ax, x=0.075, y=0.86)
+    add_map_credits(ax, "Projection: California Albers (EPSG:3310)")
+    ax.set_title(
+        "Final Model EVSE Planning Gap for Non-Benchmark Census Tracts\nGap = predicted target EVSE - current EVSE",
+        fontsize=13,
+        pad=12,
+    )
+    ax.set_axis_off()
+    plt.tight_layout()
+    plt.savefig(FIGURES / "final_scale_model_nonbenchmark_gap_map.png", dpi=240)
+    plt.close()
 
 
 def main() -> None:
@@ -170,46 +293,8 @@ def main() -> None:
     gpkg = DATA / "processed" / "ca_tract_charger_join_with_kde.gpkg"
     geo = gpd.read_file(gpkg)
     geo["GEOID"] = geo["GEOID"].astype(str)
-    geo = geo.merge(
-        statewide[
-            [
-                "GEOID",
-                "planning_gap_evse_non_benchmark_only",
-                "planning_gap_bin",
-                "is_benchmark_20to100",
-            ]
-        ],
-        on="GEOID",
-        how="left",
-    )
-    geo_3857 = geo.to_crs(3857)
-    fig, ax = plt.subplots(figsize=(8, 10))
-    geo_3857.plot(ax=ax, color="#e6e6e6", linewidth=0)
-    for label, color in zip(GAP_LABELS, GAP_COLORS):
-        geo_3857[geo_3857["planning_gap_bin"] == label].plot(
-            ax=ax,
-            color=color,
-            linewidth=0,
-        )
-    geo_3857.boundary.plot(ax=ax, linewidth=0.03, color="#b8b8b8")
-    legend_handles = [Patch(facecolor="#e6e6e6", label="Benchmark tracts")]
-    legend_handles += [
-        Patch(facecolor=color, label=f"Gap {label} EVSE")
-        for label, color in zip(GAP_LABELS, GAP_COLORS)
-    ]
-    ax.legend(
-        handles=legend_handles,
-        title="Planning gap bins",
-        loc="lower left",
-        fontsize=7,
-        title_fontsize=8,
-        frameon=True,
-    )
-    ax.set_axis_off()
-    ax.set_title("Final Model Planning Gap for Non-Benchmark California Census Tracts")
-    plt.tight_layout()
-    plt.savefig(FIGURES / "final_scale_model_nonbenchmark_gap_map.png", dpi=220)
-    plt.close()
+    plot_benchmark_value_map(geo, statewide)
+    plot_final_gap_map(geo, statewide)
 
     zero_current = nonbenchmark[nonbenchmark["current_total_evse"] == 0].nlargest(
         25, "planning_gap_evse_non_benchmark_only"

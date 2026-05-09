@@ -15,6 +15,8 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from shapely.geometry import box
 
+from gis_map_utils import add_map_credits, add_north_arrow, add_scale_bar
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
@@ -74,6 +76,9 @@ def plot_statewide_osm_kde(chargers: gpd.GeoDataFrame, tracts: gpd.GeoDataFrame)
         fontsize=16,
         pad=12,
     )
+    add_scale_bar(ax, 200_000, "200 km", location=(0.50, 0.055), anchor="center")
+    add_north_arrow(ax, x=0.075, y=0.86)
+    add_map_credits(ax, "Basemap: OpenStreetMap | KDE weighted by EVSE ports")
     ax.set_axis_off()
     fig.tight_layout()
     fig.savefig(FIGURE_DIR / "ca_ev_charger_kde_osm_basemap.png", dpi=240)
@@ -119,6 +124,8 @@ def plot_regional_osm_kde(chargers: gpd.GeoDataFrame) -> None:
             color="#111827",
             alpha=0.35,
         )
+        add_scale_bar(ax, 20_000, "20 km", location=(0.50, 0.07), linewidth=3, anchor="center")
+        add_north_arrow(ax, x=0.10, y=0.80, size=0.065)
         ax.set_title(title, fontsize=13, pad=8)
         ax.set_axis_off()
 
