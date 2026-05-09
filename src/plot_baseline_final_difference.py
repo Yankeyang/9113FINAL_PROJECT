@@ -78,7 +78,7 @@ def build_comparison() -> pd.DataFrame:
         DATA / "processed" / "final_scale_model_statewide_gap_results_nonbenchmark_flagged.csv",
         dtype={"GEOID": str},
     )
-    final_df = final_df[~final_df["is_benchmark_20to100"]].copy()
+    final_df = final_df[final_df["application_group"] == "below_standard_gap_application"].copy()
 
     county_df = pd.DataFrame(
         [

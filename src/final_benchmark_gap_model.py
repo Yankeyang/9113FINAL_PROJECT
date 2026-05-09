@@ -30,6 +30,8 @@ FEATURES = [
 ]
 TARGET = "total_evse"
 BENCHMARK_COL = "evse_per_1000_light_duty_vehicles_population_weighted"
+BENCHMARK_LOWER = 20
+BENCHMARK_UPPER = 100
 CRS_CA_ALBERS = "EPSG:3310"
 GAP_BINS = [-0.1, 0, 10, 25, 50, 100, 250, 500, 1000, np.inf]
 GAP_LABELS = [
@@ -145,6 +147,8 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
                 "planning_gap_evse_non_benchmark_only",
                 "planning_gap_bin",
                 "is_benchmark_20to100",
+                "is_above_standard_gt100",
+                "application_group",
             ]
         ],
         on="GEOID",
@@ -152,7 +156,17 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
     ).to_crs(CRS_CA_ALBERS)
 
     fig, ax = plt.subplots(figsize=(8.5, 10.5), facecolor="white")
-    map_df.plot(ax=ax, color="#e8e8e8", linewidth=0)
+    map_df.plot(ax=ax, color="#f3f4f6", linewidth=0)
+    map_df[map_df["is_benchmark_20to100"]].plot(
+        ax=ax,
+        color="#d9d9d9",
+        linewidth=0,
+    )
+    map_df[map_df["is_above_standard_gt100"]].plot(
+        ax=ax,
+        color="#238b45",
+        linewidth=0,
+    )
     for label, color in zip(GAP_LABELS, GAP_COLORS):
         map_df[map_df["planning_gap_bin"] == label].plot(
             ax=ax,
@@ -162,7 +176,26 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
     map_df.boundary.plot(ax=ax, linewidth=0.025, color="#ffffff", alpha=0.40)
     map_df.dissolve().boundary.plot(ax=ax, linewidth=0.9, color="#27313d")
 
-    legend_handles = [Patch(facecolor="#e8e8e8", edgecolor="#9ca3af", linewidth=0.25, label="Benchmark tracts")]
+    legend_handles = [
+        Patch(
+            facecolor="#e8e8e8",
+            edgecolor="#9ca3af",
+            linewidth=0.25,
+            label="Benchmark standard 20-100",
+        ),
+        Patch(
+            facecolor="#f3f4f6",
+            edgecolor="#9ca3af",
+            linewidth=0.25,
+            label="No vehicle-ratio data, excluded",
+        ),
+        Patch(
+            facecolor="#238b45",
+            edgecolor="#14532d",
+            linewidth=0.25,
+            label="Above standard >100, excluded",
+        ),
+    ]
     legend_handles += [
         Patch(facecolor=color, edgecolor="#4b5563", linewidth=0.25, label=f"Gap {label} EVSE")
         for label, color in zip(GAP_LABELS, GAP_COLORS)
@@ -182,7 +215,7 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
     add_north_arrow(ax, x=0.075, y=0.86)
     add_map_credits(ax, "Projection: California Albers (EPSG:3310)")
     ax.set_title(
-        "Final Model EVSE Planning Gap for Non-Benchmark Census Tracts\nGap = predicted target EVSE - current EVSE",
+        "Final Model EVSE Planning Gap for Below-Standard Census Tracts\nGap = predicted target EVSE - current EVSE",
         fontsize=13,
         pad=12,
     )
@@ -198,7 +231,13 @@ def main() -> None:
 
     ratio_path = DATA / "processed" / "ca_tract_evse_vehicle_ratio_results.csv"
     ratio = pd.read_csv(ratio_path, dtype={"GEOID": str})
-    ratio["is_benchmark_20to100"] = ratio[BENCHMARK_COL].between(20, 100, inclusive="both")
+    ratio["is_benchmark_20to100"] = ratio[BENCHMARK_COL].between(
+        BENCHMARK_LOWER,
+        BENCHMARK_UPPER,
+        inclusive="both",
+    )
+    ratio["is_above_standard_gt100"] = ratio[BENCHMARK_COL] > BENCHMARK_UPPER
+    ratio["is_below_standard_lt20"] = ratio[BENCHMARK_COL] < BENCHMARK_LOWER
 
     benchmark = ratio[ratio["is_benchmark_20to100"]].copy()
     train, test = train_test_split(benchmark, test_size=0.25, random_state=2)
@@ -253,15 +292,23 @@ def main() -> None:
     statewide["model_gap_evse_all_tracts"] = (
         statewide["predicted_target_evse_count"] - statewide["current_total_evse"]
     ).clip(lower=0)
-    statewide["application_group"] = np.where(
-        statewide["is_benchmark_20to100"],
-        "benchmark_training_standard",
-        "non_benchmark_application",
+    statewide["application_group"] = np.select(
+        [
+            statewide["is_benchmark_20to100"],
+            statewide["is_above_standard_gt100"],
+            statewide["is_below_standard_lt20"],
+        ],
+        [
+            "benchmark_training_standard",
+            "above_standard_excluded",
+            "below_standard_gap_application",
+        ],
+        default="excluded_no_vehicle_ratio",
     )
     statewide["planning_gap_evse_non_benchmark_only"] = np.where(
-        statewide["is_benchmark_20to100"],
-        np.nan,
+        statewide["is_below_standard_lt20"],
         statewide["model_gap_evse_all_tracts"],
+        np.nan,
     )
     statewide["planning_gap_bin"] = pd.cut(
         statewide["planning_gap_evse_non_benchmark_only"],
@@ -274,7 +321,7 @@ def main() -> None:
         index=False,
     )
 
-    nonbenchmark = statewide[~statewide["is_benchmark_20to100"]].copy()
+    nonbenchmark = statewide[statewide["is_below_standard_lt20"]].copy()
     gap_bin_counts = (
         nonbenchmark["planning_gap_bin"]
         .value_counts(sort=False)

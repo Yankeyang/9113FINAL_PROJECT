@@ -16,7 +16,9 @@ CRS_WGS84 = "EPSG:4326"
 BENCHMARK_COL = "evse_per_1000_light_duty_vehicles_population_weighted"
 
 GAP_CATEGORY_ORDER = [
-    "Benchmark tracts",
+    "Benchmark standard 20-100",
+    "No vehicle-ratio data, excluded",
+    "Above standard >100, excluded",
     "Gap 0 EVSE",
     "Gap 1-10 EVSE",
     "Gap 11-25 EVSE",
@@ -28,7 +30,9 @@ GAP_CATEGORY_ORDER = [
     "Gap >1000 EVSE",
 ]
 GAP_COLORS = {
-    "Benchmark tracts": "#d9d9d9",
+    "Benchmark standard 20-100": "#d9d9d9",
+    "No vehicle-ratio data, excluded": "#f3f4f6",
+    "Above standard >100, excluded": "#238b45",
     "Gap 0 EVSE": "#f7f7f7",
     "Gap 1-10 EVSE": "#fff7bc",
     "Gap 11-25 EVSE": "#fee391",
@@ -81,6 +85,9 @@ def load_interactive_data() -> gpd.GeoDataFrame:
         "ev_vehicles_population_weighted",
         BENCHMARK_COL,
         "is_benchmark_20to100",
+        "is_above_standard_gt100",
+        "is_below_standard_lt20",
+        "application_group",
         "predicted_target_evse_count",
         "current_total_evse",
         "planning_gap_evse_non_benchmark_only",
@@ -89,7 +96,12 @@ def load_interactive_data() -> gpd.GeoDataFrame:
     gdf = geo[["GEOID", "geometry"]].merge(statewide[keep_cols], on="GEOID", how="left")
 
     gdf["gap_map_class"] = "Gap " + gdf["planning_gap_bin"].astype(str) + " EVSE"
-    gdf.loc[gdf["is_benchmark_20to100"], "gap_map_class"] = "Benchmark tracts"
+    gdf.loc[gdf["is_benchmark_20to100"], "gap_map_class"] = "Benchmark standard 20-100"
+    gdf.loc[gdf["is_above_standard_gt100"], "gap_map_class"] = "Above standard >100, excluded"
+    gdf.loc[
+        gdf["application_group"] == "excluded_no_vehicle_ratio",
+        "gap_map_class",
+    ] = "No vehicle-ratio data, excluded"
     gdf["gap_map_class"] = pd.Categorical(
         gdf["gap_map_class"],
         categories=GAP_CATEGORY_ORDER,

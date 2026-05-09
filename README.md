@@ -4,11 +4,13 @@
 
 This project builds a census tract-level EV charger planning model for California. The goal is not to forecast natural market demand. Instead, the project estimates how many EV charging ports each tract should have if it were planned toward a benchmark level already observed in better-served California tracts.
 
-The final model uses current high-service tracts as a planning benchmark, applies that standard to other California census tracts, and estimates the future EVSE planning gap:
+The final model uses current high-service tracts as a planning benchmark, applies that standard to below-standard California census tracts, and estimates the future EVSE planning gap:
 
 ```text
 planning gap = max(0, predicted target EVSE count - current EVSE count)
 ```
+
+The gap is an absolute EVSE count. It estimates how many additional public EVSE ports would be needed in a tract under the benchmark planning standard.
 
 ## Research Question
 
@@ -31,7 +33,7 @@ The final benchmark group is:
 20 <= ev_charger_benchmark_value <= 100
 ```
 
-Tracts above 100 are treated as extreme high-ratio cases and excluded from the benchmark training group.
+Tracts below 20 are the final model application group for gap estimation. Tracts above 100 are treated as above-standard high-ratio cases: they are displayed separately on the map and excluded from both benchmark training and gap statistics.
 
 ## Final Workflow
 
@@ -221,9 +223,15 @@ RMSE: 21.44
 R2:   0.55
 ```
 
-### 8. Apply Model to Non-Benchmark Tracts
+### 8. Apply Model to Below-Standard Tracts
 
-After training on benchmark tracts, the model is applied to all non-benchmark California tracts. For each tract:
+After training on benchmark tracts, the model is applied to below-standard California tracts:
+
+```text
+ev_charger_benchmark_value < 20
+```
+
+For each below-standard tract:
 
 ```text
 predicted target EVSE count = model output
@@ -231,15 +239,15 @@ current EVSE count = existing public EVSE count
 planning gap = max(0, predicted target EVSE count - current EVSE count)
 ```
 
-Benchmark tracts are shown in gray on the final gap map because they are the training standard, not the main application group.
+Benchmark tracts are shown in gray on the final gap map because they are the training standard, not the main application group. Tracts above 100 are shown as above-standard and are not included in the gap total.
 
 Final statewide application:
 
 ```text
-Non-benchmark tracts: 8,941
-Total predicted target EVSE in non-benchmark tracts: 909,749
-Current EVSE in non-benchmark tracts: 36,102
-Total planning gap: 875,826
+Below-standard gap application tracts: 8,871
+Benchmark standard tracts, 20-100: 188
+Above-standard tracts, >100: 21
+Total planning gap in below-standard tracts: 874,469 EVSE
 ```
 
 Key outputs:
@@ -253,7 +261,7 @@ outputs/tables/top_100_nonbenchmark_gap_tracts.csv
 outputs/tables/top_100_zero_current_nonbenchmark_gap_tracts.csv
 ```
 
-![Final non-benchmark planning gap map](outputs/figures/final_scale_model_nonbenchmark_gap_map.png)
+![Final below-standard planning gap map](outputs/figures/final_scale_model_nonbenchmark_gap_map.png)
 
 The final gap map uses binned colors so that extreme high-gap tracts do not dominate the visualization:
 
