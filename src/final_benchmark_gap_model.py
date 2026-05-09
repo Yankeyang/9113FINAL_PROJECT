@@ -16,6 +16,15 @@ from sklearn.preprocessing import StandardScaler
 from gis_map_utils import add_map_credits, add_north_arrow, add_scale_bar
 
 
+plt.rcParams["font.sans-serif"] = [
+    "Arial Unicode MS",
+    "PingFang HK",
+    "Songti SC",
+    "Heiti TC",
+    "DejaVu Sans",
+]
+plt.rcParams["axes.unicode_minus"] = False
+
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 OUTPUTS = ROOT / "outputs"
@@ -114,18 +123,19 @@ def plot_benchmark_value_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> 
         Patch(facecolor=color, edgecolor="#4b5563", linewidth=0.25, label=f"{label} EVSE / 1,000 vehicles")
         for label, color in zip(BENCHMARK_LABELS, BENCHMARK_COLORS)
     ]
-    ax.legend(
+    fig.legend(
         handles=handles,
         title="EV charger benchmark value",
-        loc="lower right",
-        bbox_to_anchor=(0.98, 0.065),
+        loc="lower center",
+        bbox_to_anchor=(0.50, 0.03),
+        ncol=4,
         fontsize=7,
         title_fontsize=8,
         frameon=True,
         framealpha=0.94,
         borderpad=0.7,
     )
-    add_scale_bar(ax, 200_000, "200 km", location=(0.50, 0.055), anchor="center")
+    add_scale_bar(ax, 200_000, "200 km", location=(0.18, 0.105), anchor="center")
     add_north_arrow(ax, x=0.075, y=0.86)
     add_map_credits(ax, "Projection: California Albers (EPSG:3310)")
     ax.set_title(
@@ -134,7 +144,7 @@ def plot_benchmark_value_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> 
         pad=12,
     )
     ax.set_axis_off()
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0.11, 1, 0.965))
     plt.savefig(FIGURES / "ca_ev_charger_benchmark_value_by_tract.png", dpi=240)
     plt.close()
 
@@ -193,25 +203,26 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
             facecolor="#006d77",
             edgecolor="#003c43",
             linewidth=0.25,
-            label="Above standard >100, excluded",
+            label="高于标准 >100, excluded",
         ),
     ]
     legend_handles += [
         Patch(facecolor=color, edgecolor="#4b5563", linewidth=0.25, label=f"Gap {label} EVSE")
         for label, color in zip(GAP_LABELS, GAP_COLORS)
     ]
-    ax.legend(
+    fig.legend(
         handles=legend_handles,
         title="Planning gap bins",
-        loc="lower right",
-        bbox_to_anchor=(0.98, 0.065),
+        loc="lower center",
+        bbox_to_anchor=(0.50, 0.03),
+        ncol=3,
         fontsize=7,
         title_fontsize=8,
         frameon=True,
         framealpha=0.94,
         borderpad=0.7,
     )
-    add_scale_bar(ax, 200_000, "200 km", location=(0.50, 0.055), anchor="center")
+    add_scale_bar(ax, 200_000, "200 km", location=(0.18, 0.105), anchor="center")
     add_north_arrow(ax, x=0.075, y=0.86)
     add_map_credits(ax, "Projection: California Albers (EPSG:3310)")
     ax.set_title(
@@ -220,7 +231,7 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
         pad=12,
     )
     ax.set_axis_off()
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0.11, 1, 0.965))
     plt.savefig(FIGURES / "final_scale_model_nonbenchmark_gap_map.png", dpi=240)
     plt.close()
 
