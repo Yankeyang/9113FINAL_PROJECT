@@ -161,14 +161,14 @@ def style_layout(fig, title: str) -> None:
     fig.update_layout(
         title={"text": title, "x": 0.50, "xanchor": "center"},
         height=900,
-        margin={"l": 10, "r": 10, "t": 70, "b": 150},
+        margin={"l": 10, "r": 10, "t": 70, "b": 40},
         legend={
             "title": {"text": "Map legend"},
             "orientation": "h",
             "x": 0.50,
-            "y": -0.08,
+            "y": 0.02,
             "xanchor": "center",
-            "yanchor": "top",
+            "yanchor": "bottom",
             "bgcolor": "rgba(255,255,255,0.96)",
             "bordercolor": "#c7c7c7",
             "borderwidth": 1,
