@@ -18,7 +18,7 @@ BENCHMARK_COL = "evse_per_1000_light_duty_vehicles_population_weighted"
 GAP_CATEGORY_ORDER = [
     "Benchmark standard 20-100",
     "No vehicle-ratio data, excluded",
-    "高于标准 >100, excluded",
+    "Above standard >100, excluded",
     "Gap 0 EVSE",
     "Gap 1-10 EVSE",
     "Gap 11-25 EVSE",
@@ -32,7 +32,7 @@ GAP_CATEGORY_ORDER = [
 GAP_COLORS = {
     "Benchmark standard 20-100": "#9ecae1",
     "No vehicle-ratio data, excluded": "#f3f4f6",
-    "高于标准 >100, excluded": "#006d77",
+    "Above standard >100, excluded": "#006d77",
     "Gap 0 EVSE": "#fff5f0",
     "Gap 1-10 EVSE": "#fee0d2",
     "Gap 11-25 EVSE": "#fcbba1",
@@ -97,7 +97,7 @@ def load_interactive_data() -> gpd.GeoDataFrame:
 
     gdf["gap_map_class"] = "Gap " + gdf["planning_gap_bin"].astype(str) + " EVSE"
     gdf.loc[gdf["is_benchmark_20to100"], "gap_map_class"] = "Benchmark standard 20-100"
-    gdf.loc[gdf["is_above_standard_gt100"], "gap_map_class"] = "高于标准 >100, excluded"
+    gdf.loc[gdf["is_above_standard_gt100"], "gap_map_class"] = "Above standard >100, excluded"
     gdf.loc[
         gdf["application_group"] == "excluded_no_vehicle_ratio",
         "gap_map_class",
@@ -159,14 +159,15 @@ def make_hover_data() -> dict[str, bool | str]:
 def style_layout(fig, title: str) -> None:
     fig.update_traces(marker_line_width=0.15, marker_line_color="rgba(255,255,255,0.45)")
     fig.update_layout(
-        title={"text": title, "x": 0.42, "xanchor": "center"},
+        title={"text": title, "x": 0.50, "xanchor": "center"},
         height=900,
-        margin={"l": 10, "r": 300, "t": 70, "b": 10},
+        margin={"l": 10, "r": 10, "t": 70, "b": 150},
         legend={
             "title": {"text": "Map legend"},
-            "x": 1.02,
-            "y": 0.98,
-            "xanchor": "left",
+            "orientation": "h",
+            "x": 0.50,
+            "y": -0.08,
+            "xanchor": "center",
             "yanchor": "top",
             "bgcolor": "rgba(255,255,255,0.96)",
             "bordercolor": "#c7c7c7",

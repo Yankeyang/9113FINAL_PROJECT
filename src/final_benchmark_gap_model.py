@@ -203,7 +203,7 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
             facecolor="#006d77",
             edgecolor="#003c43",
             linewidth=0.25,
-            label="高于标准 >100, excluded",
+            label="Above standard >100, excluded",
         ),
     ]
     legend_handles += [
