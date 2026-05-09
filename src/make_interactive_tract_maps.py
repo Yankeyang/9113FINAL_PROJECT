@@ -30,18 +30,18 @@ GAP_CATEGORY_ORDER = [
     "Gap >1000 EVSE",
 ]
 GAP_COLORS = {
-    "Benchmark standard 20-100": "#d9d9d9",
+    "Benchmark standard 20-100": "#9ecae1",
     "No vehicle-ratio data, excluded": "#f3f4f6",
-    "Above standard >100, excluded": "#238b45",
-    "Gap 0 EVSE": "#f7f7f7",
-    "Gap 1-10 EVSE": "#fff7bc",
-    "Gap 11-25 EVSE": "#fee391",
-    "Gap 26-50 EVSE": "#fec44f",
-    "Gap 51-100 EVSE": "#fe9929",
-    "Gap 101-250 EVSE": "#ec7014",
-    "Gap 251-500 EVSE": "#cc4c02",
-    "Gap 501-1000 EVSE": "#993404",
-    "Gap >1000 EVSE": "#4d1600",
+    "Above standard >100, excluded": "#006d77",
+    "Gap 0 EVSE": "#fff5f0",
+    "Gap 1-10 EVSE": "#fee0d2",
+    "Gap 11-25 EVSE": "#fcbba1",
+    "Gap 26-50 EVSE": "#fc9272",
+    "Gap 51-100 EVSE": "#fb6a4a",
+    "Gap 101-250 EVSE": "#ef3b2c",
+    "Gap 251-500 EVSE": "#cb181d",
+    "Gap 501-1000 EVSE": "#a50f15",
+    "Gap >1000 EVSE": "#67000d",
 }
 
 BENCHMARK_CATEGORY_ORDER = [

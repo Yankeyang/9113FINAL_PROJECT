@@ -46,15 +46,15 @@ GAP_LABELS = [
     ">1000",
 ]
 GAP_COLORS = [
-    "#f7f7f7",
-    "#fff7bc",
-    "#fee391",
-    "#fec44f",
-    "#fe9929",
-    "#ec7014",
-    "#cc4c02",
-    "#993404",
-    "#4d1600",
+    "#fff5f0",
+    "#fee0d2",
+    "#fcbba1",
+    "#fc9272",
+    "#fb6a4a",
+    "#ef3b2c",
+    "#cb181d",
+    "#a50f15",
+    "#67000d",
 ]
 BENCHMARK_BINS = [-0.1, 0, 1, 5, 10, 20, 50, 100, np.inf]
 BENCHMARK_LABELS = ["0", "0-1", "1-5", "5-10", "10-20", "20-50", "50-100", ">100"]
@@ -159,12 +159,12 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
     map_df.plot(ax=ax, color="#f3f4f6", linewidth=0)
     map_df[map_df["is_benchmark_20to100"]].plot(
         ax=ax,
-        color="#d9d9d9",
+        color="#9ecae1",
         linewidth=0,
     )
     map_df[map_df["is_above_standard_gt100"]].plot(
         ax=ax,
-        color="#238b45",
+        color="#006d77",
         linewidth=0,
     )
     for label, color in zip(GAP_LABELS, GAP_COLORS):
@@ -178,8 +178,8 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
 
     legend_handles = [
         Patch(
-            facecolor="#e8e8e8",
-            edgecolor="#9ca3af",
+            facecolor="#9ecae1",
+            edgecolor="#2166ac",
             linewidth=0.25,
             label="Benchmark standard 20-100",
         ),
@@ -190,8 +190,8 @@ def plot_final_gap_map(geo: gpd.GeoDataFrame, statewide: pd.DataFrame) -> None:
             label="No vehicle-ratio data, excluded",
         ),
         Patch(
-            facecolor="#238b45",
-            edgecolor="#14532d",
+            facecolor="#006d77",
+            edgecolor="#003c43",
             linewidth=0.25,
             label="Above standard >100, excluded",
         ),
